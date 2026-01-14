@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <title>Kingspan | Tech Selector Pro</title>
+    
+    <style>
+        :root {
+            --kingspan-blue: #002d72;
+            --kingspan-light: #00a1e4;
+            --gray-bg: #f4f7f9;
+            --success: #27ae60;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--gray-bg);
+            color: #333;
+            margin: 0;
+            padding-bottom: 50px;
+        }
+
+        .navbar {
+            background: var(--kingspan-blue);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 0 15px;
+        }
+
+        .card-config {
+            background: white;
+            padding: 25px;
+            border-radius: 4px;
+            border-top: 6px solid var(--kingspan-light);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            margin-bottom: 25px;
+        }
+
+        h2, h3 { color: var(--kingspan-blue); margin-top: 0; }
+
+        .grid-filters {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        label {
+            font-weight: bold;
+            font-size: 0.75rem;
+            color: #666;
+            text-transform: uppercase;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        select, input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+
+        .product-result {
+            background: white;
+            margin-bottom: 12px;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 4px;
+            border: 1px solid #e0e0e0;
+            transition: transform 0.2s;
+        }
+
+        .product-result:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .info-prod { flex: 1; }
+        .tech-tag {
+            font-size: 0.7rem;
+            font-weight: bold;
+            color: var(--kingspan-light);
+            letter-spacing: 1px;
+        }
+
+        .u-badge {
+            background: #f0f7ff;
+            border: 1px solid #d0e4f7;
+            padding: 10px 20px;
+            border-radius: 6px;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .u-val {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: var(--kingspan-blue);
+            display: block;
+        }
+
+        .btn-export {
+            background: var(--success);
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            font-size: 1rem;
+            margin-top: 20px;
+            box-shadow: 0 4px 0 #1e8449;
+        }
+
+        .btn-export:active { transform: translateY(2px); box-shadow: none; }
+
+        .warning { color: #d32f2f; font-size: 0.85rem; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="navbar">
+    <div style="font-weight: 800; letter-spacing: -1px; font-size: 1.4rem;">KINGSPAN <span style="font-weight: 300; color: var(--kingspan-light);">SELECTOR</span></div>
+</div>
+
+<div class="container">
+    <div class="card-config">
+        <h3>1. REQUISITI DI PROGETTO</h3>
+        <div class="grid-filters">
+            <div>
+                <label>Tipo di Struttura</label>
+                <select id="appFilter" onchange="aggiornaTarget()">
+                    <option value="Copertura">Copertura (Tetto)</option>
+                    <option value="Parete">Parete Esterna</option>
+                    <option value="Cella Frigo / Cleanroom">Celle / Ambienti Controllati</option>
+                </select>
+            </div>
+            <div>
+                <label>Località (Zona Climatica)</label>
+                <select id="zonaFilter" onchange="aggiornaTarget()">
+                    <option value="A-B">Zona A/B (Sud/Isole)</option>
+                    <option value="C">Zona C (Adriatico/Tirreno)</option>
+                    <option value="D">Zona D (Centro)</option>
+                    <option value="E" selected>Zona E (Nord/Appennino)</option>
+                    <option value="F">Zona F (Alpi)</option>
+                </select>
+            </div>
+            <div>
+                <label>Target U-Value (W/m²K)</label>
+                <input type="number" id="uTarget" step="0.01" oninput="calcola()">
+            </div>
+        </div>
+    </div>
+
+    <div id="lista">
+        </div>
+
+    <button class="btn-export" onclick="exportData()">📥 GENERA SPECIFICA TECNICA (.TXT)</button>
+</div>
+
+<script>
+// Database Prodotti e Trasmittanze
+const db = [
+    { 
+        nome: "KS1000 RW QuadCore", 
+        app: "Copertura", 
+        tech: "QuadCore®", 
+        desc: "Pannello trapezoidale ad alta efficienza",
+        data: [{s:60, u:0.33}, {s:80, u:0.25}, {s:100, u:0.20}, {s:120, u:0.17}, {s:150, u:0.14}] 
+    },
+    { 
+        nome: "KS1150 RF K-Roc", 
+        app: "Parete", 
+        tech: "Lana di Roccia", 
+        desc: "Isolamento incombustibile certificato",
+        data: [{s:100, u:0.39}, {s:120, u:0.32}, {s:150, u:0.26}, {s:200, u:0.20}] 
+    },
+    { 
+        nome: "QuadCore AWP", 
+        app: "Parete", 
+        tech: "QuadCore®", 
+        desc: "Fissaggio nascosto per facciate architettoniche",
+        data: [{s:60, u:0.35}, {s:80, u:0.26}, {s:100, u:0.21}, {s:120, u:0.18}] 
+    },
+    { 
+        nome: "Isocab IND QuadCore", 
+        app: "Cella Frigo / Cleanroom", 
+        tech: "QuadCore®", 
+        desc: "Massima igiene per industria alimentare",
+        data: [{s:100, u:0.19}, {s:150, u:0.12}, {s:200, u:0.09}] 
+    }
+];
+
+// Limiti normativi D.M. Requisiti Minimi
+const limitiLegge = {
+    "A-B": {tetto: 0.32, parete: 0.40},
+    "C": {tetto: 0.32, parete: 0.36},
+    "D": {tetto: 0.26, parete: 0.32},
+    "E": {tetto: 0.24, parete: 0.28},
+    "F": {tetto: 0.22, parete: 0.26}
+};
+
+function aggiornaTarget() {
+    const zona = document.getElementById('zonaFilter').value;
+    const app = document.getElementById('appFilter').value;
+    const inputU = document.getElementById('uTarget');
+    
+    // Imposta il valore suggerito dalla legge
+    if (app === "Copertura") {
+        inputU.value = limitiLegge[zona].tetto;
+    } else {
+        inputU.value = limitiLegge[zona].parete;
+    }
+    calcola();
+}
+
+function calcola() {
+    const target = parseFloat(document.getElementById('uTarget').value);
+    const app = document.getElementById('appFilter').value;
+    const container = document.getElementById('lista');
+    let html = `<h3>2. SOLUZIONI OTTIMIZZATE</h3>`;
+
+    const filtrati = db.filter(p => p.app === app);
+    
+    filtrati.forEach(p => {
+        const match = p.data.find(d => d.u <= target);
+        
+        html += `
+            <div class="product-result">
+                <div class="info-prod">
+                    <span class="tech-tag">${p.tech}</span>
+                    <div style="font-weight:bold; font-size:1.2rem;">${p.nome}</div>
+                    <div style="font-size:0.85rem; color:#666;">${p.desc}</div>
+                </div>
+                <div class="u-badge">
+                    ${match ? `
+                        <span style="font-size:0.7rem; color:#666;">SPESSORE</span>
+                        <span class="u-val">${match.s} mm</span>
+                        <small>U: ${match.u} W/m²K</small>
+                    ` : `
+                        <span class="warning">NON IDONEO</span><br>
+                        <small>U min: ${p.data[p.data.length-1].u}</small>
+                    `}
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+}
+
+function exportData() {
+    const zona = document.getElementById('zonaFilter').value;
+    const app = document.getElementById('appFilter').value;
+    const target = document.getElementById('uTarget').value;
+    
+    let report = `RELAZIONE TECNICA PRELIMINARE KINGSPAN\n`;
+    report += `========================================\n`;
+    report += `Data: ${new Date().toLocaleDateString()}\n`;
+    report += `Zona Climatica: ${zona}\n`;
+    report += `Applicazione: ${app}\n`;
+    report += `Target Trasmittanza (U): ${target} W/m2K\n\n`;
+    report += `RISULTATI:\n`;
+    
+    document.querySelectorAll('.product-result').forEach(el => {
+        const nome = el.querySelector('div[style*="bold"]').innerText;
+        const result = el.querySelector('.u-badge').innerText.replace(/\n/g, " ");
+        report += `- ${nome}: ${result}\n`;
+    });
+
+    const blob = new Blob([report], {type: "text/plain"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `Specifica_Kingspan_${zona}.txt`;
+    a.click();
+}
+
+// Avvio iniziale
+aggiornaTarget();
+
+// Service Worker Registration per PWA
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
+</script>
+
+</body>
+</html>
